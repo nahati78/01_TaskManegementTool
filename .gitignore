@@ -1,0 +1,24 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Logs
+*.log
+
+# Dependency directories (remove the comment below if you use vendoring)
+/vendor/
+
+# Environment variables
+.env
+
+# IDE/editor folders
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
