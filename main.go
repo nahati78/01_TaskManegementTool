@@ -19,10 +19,22 @@ var fakeUser = User{
 	Password: "xxxxxx",
 }
 
+// タスク用構造体
+type Task struct {
+	ID        int    `json:"id"`
+	Title     string `json:"title" binding:"required"`
+	About     string `json:"about" binding:"required"`
+	Status    int    `json:"status" binding:"required"`
+	Limit     string `json:"limit" binding:"required"` // 本来はtime.Time型が望ましい
+	CreatedAt string `json:"created_at"`
+	UserID    int    `json:"user_id"`
+}
+
 func main() {
 	r := gin.Default()               //ginの「デフォルトサーバ」（ミドルウェアとかログの初期化済み）をrという変数で操作する.
 	r.POST("/signup", signupHandler) //signupというURLにアクセスされたらsingupHandler処理を実行しろ（signupというURLの作成も兼ねている）.
-	r.POST("/login", loginHandler)   // ログインAPI追加
+	r.POST("/login", loginHandler)   //ログインAPI追加
+	r.POST("/tasks", addTaskHandler) //タスク追加API追加
 	r.Run(":8080")                   //サーバを8080で開く.
 }
 
@@ -47,7 +59,7 @@ func loginHandler(c *gin.Context) {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
-	if err := c.BindJSON(&loginData); err != nil {
+	if err := c.BindJSON(&loginData); err != nil { //BindJSON←json形式のデータをGoの構造体に自動で代入してくれる
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
 		return
 	}
@@ -61,4 +73,38 @@ func loginHandler(c *gin.Context) {
 			"error": "メールアドレスまたはパスワードが正しくありません",
 		})
 	}
+}
+
+// タスク追加API
+func addTaskHandler(c *gin.Context) {
+	// 仮：認証済みのユーザID=1とする（本来はJWTから取得）
+	userID := 1
+
+	var req struct {
+		Title  string `json:"title" binding:"required"`
+		About  string `json:"about" binding:"required"`
+		Status int    `json:"status" binding:"required"`
+		Limit  string `json:"limit" binding:"required"`
+	}
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
+		return
+	}
+	// ステータス値のバリデーション（1/2/3以外はNG）
+	if req.Status < 1 || req.Status > 3 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "status must be 1, 2, or 3"})
+		return
+	}
+
+	// 仮：ID自動発番（実際はDBで発番）
+	newTask := Task{
+		ID:        15, // ダミー
+		Title:     req.Title,
+		About:     req.About,
+		Status:    req.Status,
+		Limit:     req.Limit,
+		CreatedAt: "2025-07-08T12:58:00Z", // ダミー
+		UserID:    userID,
+	}
+	c.JSON(http.StatusOK, newTask)
 }
