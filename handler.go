@@ -81,7 +81,6 @@ func addTaskHandler(c *gin.Context) {
 }
 
 // タスクステータス変更API
-// PATCH /tasks/:id/status
 func updateTaskStatusHandler(c *gin.Context) {
 	// URLパラメータからid取得
 	idParam := c.Param("id")
@@ -114,5 +113,30 @@ func updateTaskStatusHandler(c *gin.Context) {
 		}
 	}
 	// タスク見つからなければ404
+	c.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
+}
+
+// タスク一覧取得API
+func getTasksHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, tasks)
+}
+
+// タスク論理削除API
+func deleteTaskHandler(c *gin.Context) {
+	idParam := c.Param("id")
+	var targetID int
+	_, err := fmt.Sscanf(idParam, "%d", &targetID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid task id"})
+		return
+	}
+	// タスクを検索して論理削除
+	for i := range tasks {
+		if tasks[i].ID == targetID {
+			tasks[i].Status = 9 // 論理削除
+			c.JSON(http.StatusOK, gin.H{"id": tasks[i].ID, "status": tasks[i].Status})
+			return
+		}
+	}
 	c.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
 }
