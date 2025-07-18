@@ -2,7 +2,10 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
+
+var db *gorm.DB
 
 func main() {
 	r := gin.Default()                                    //ginの「デフォルトサーバ」（ミドルウェアとかログの初期化済み）をrという変数で操作する.
