@@ -2,47 +2,52 @@ package main
 
 import (
 	"fmt"
-
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
+var tasks []Task // 仮：タスク一覧をメモリ上に保持（DB未接続のため）
+
 // ユーザ登録APIのハンドラ関数
-func signupHandler(c *gin.Context) { //cはginフレームワークがリクエストごとに自動で生成し渡す.
-	var user User                             //構造体の変数を作成.
-	if err := c.BindJSON(&user); err != nil { //リクエストボディ（JSON）をuser構造体にマッピングする.失敗したらerrにエラーが入る.
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"}) //HTTP 400エラーとして、{"error": "invalid input"}を返す.
+func signupHandler(c *gin.Context) {
+	var req struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid request"})
 		return
 	}
-	// 仮実装：ID=1を返すだけ
-	c.JSON(http.StatusOK, gin.H{ //HTTP 200でJSONレスポンスを返す.
-		"id":    1,
-		"name":  user.Name,
-		"email": user.Email,
-	})
+	user := User{
+		Name:     req.Username,
+		Email:    fmt.Sprintf("%s@example.com", req.Username),
+		Password: req.Password,
+	}
+
+	if err := db.Create(&user).Error; err != nil {
+		c.JSON(500, gin.H{"error": "Could not create user"})
+		return
+	}
+	c.JSON(200, gin.H{"message": "User created"})
 }
 
 // ログインAPI
 func loginHandler(c *gin.Context) {
-	var loginData struct {
-		Email    string `json:"email"`
+	var req struct {
+		Username string `json:"username"`
 		Password string `json:"password"`
 	}
-	if err := c.BindJSON(&loginData); err != nil { //BindJSON←json形式のデータをGoの構造体に自動で代入してくれる
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid request"})
 		return
 	}
-	// 仮：fakeUserと一致するなら成功
-	if loginData.Email == fakeUser.Email && loginData.Password == fakeUser.Password {
-		c.JSON(http.StatusOK, gin.H{
-			"token": "xxxxx.yyyyy.zzzzz", // 仮のトークン
-		})
-	} else {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "メールアドレスまたはパスワードが正しくありません",
-		})
+	var user User
+	if err := db.Where("email = ? AND password = ?", req.Username, req.Password).First(&user).Error; err != nil {
+		c.JSON(401, gin.H{"error": "Invalid credentials"})
+		return
 	}
+	c.JSON(200, gin.H{"message": "Login successful"})
 }
 
 // タスク追加API
